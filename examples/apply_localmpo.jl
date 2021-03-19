@@ -39,17 +39,33 @@ function main(N; θ, pattern)
   U = ops(s, gates)
 
   # Without basis change
-  UH1 = apply(U, H; apply_dag = true, cutoff = 1e-8)
+  UH1 = H
+  mpo_evolution_succeeded = false
+  UH1 = try
+    UH1 = apply(U, UH1; apply_dag = true, cutoff = 1e-8)
+    UH1 = apply(U, UH1; apply_dag = true, cutoff = 1e-8)
+    mpo_evolution_succeeded = true
+    UH1
+  catch
+    println("apply(U, H::MPO, apply_dag = true, [...]) failed, likely because of overflow")
+  end
 
   # With basis change
   basis_transformation = scale_bases(H; normalize_op = "Id")
 
   UX, HX = combine_and_transform(U, H, basis_transformation...)
-  UHX = apply(UX, HX; cutoff = 1e-8)
+  UHX = HX
+  UHX = apply(UX, UHX; cutoff = 1e-8)
+  UHX = apply(UX, UHX; cutoff = 1e-8)
   UH2 = inv_transform_and_uncombine(UHX, basis_transformation...)
-  @show norm(H), norm(HX), norm(UHX), norm(UH1), norm(UH2)
-  @show maximum(norm, H), maximum(norm, HX), maximum(norm, UHX), maximum(norm, UH1), maximum(norm, UH2)
-  @show inner(UH1, UH2) / (norm(UH1) * norm(UH2))
+
+  @show maxlinkdim(H), maxlinkdim(HX), maxlinkdim(UHX), maxlinkdim(UH2)
+  mpo_evolution_succeeded && @show maxlinkdim(UH1)
+  @show norm(H), norm(HX), norm(UHX), norm(UH2)
+  mpo_evolution_succeeded && @show norm(UH1)
+  @show maximum(norm, H), maximum(norm, HX), maximum(norm, UHX), maximum(norm, UH2)
+  mpo_evolution_succeeded && @show maximum(norm, UH1)
+  mpo_evolution_succeeded && @show inner(UH1, UH2) / (norm(UH1) * norm(UH2))
 
   return nothing
 end
