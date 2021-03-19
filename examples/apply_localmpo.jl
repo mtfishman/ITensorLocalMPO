@@ -12,7 +12,7 @@ function op(::OpName"Givens", ::SiteType"Electron", s1::Index, s2::Index; θ, θ
   return exp(prod(MPO(ampo, [s1, s2])))
 end
 
-function main(N)
+function main(N; θ, pattern)
   s = siteinds("Electron", N; conserve_qns = true)
 
   U = 1.0
@@ -28,8 +28,14 @@ function main(N)
   end
   H = MPO(a, s)
 
-  θ = π/4
-  gates = [("Givens", (n, n+1), (θ = θ,)) for n in 1:N-1]
+  if pattern == "staircase"
+    gates = [("Givens", (n, n+1), (θ = θ,)) for n in 1:N-1]
+  elseif pattern == "brick"
+    gates = [("Givens", (n, n+1), (θ = θ,)) for n in 1:2:N-1]
+    append!(gates, [("Givens", (n, n+1), (θ = θ,)) for n in 2:2:N-1])
+  else
+    error("Gate pattern $pattern not supported")
+  end
   U = ops(s, gates)
 
   # Without basis change
@@ -44,7 +50,7 @@ function main(N)
   @show norm(H), norm(HX), norm(UHX), norm(UH1), norm(UH2)
   @show maximum(norm, H), maximum(norm, HX), maximum(norm, UHX), maximum(norm, UH1), maximum(norm, UH2)
   @show inner(UH1, UH2) / (norm(UH1) * norm(UH2))
-end
 
-main(100)
+  return nothing
+end
 
