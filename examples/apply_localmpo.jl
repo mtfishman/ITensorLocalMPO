@@ -57,6 +57,14 @@ function main(N; θ, pattern)
   UHX = HX
   UHX = apply(UX, UHX; cutoff = 1e-8)
   UHX = apply(UX, UHX; cutoff = 1e-8)
+
+  # Fix normalization
+  normsUHX = norm.(UHX)
+  UHX ./= normsUHX
+  lognormsUHX = log.(normsUHX)
+  lognormUHX = sum(lognormsUHX)
+  UHX .*= exp(lognormUHX / N)
+
   UH2 = inv_transform_and_uncombine(UHX, basis_transformation...)
 
   @show maxlinkdim(H), maxlinkdim(HX), maxlinkdim(UHX), maxlinkdim(UH2)
